@@ -18,7 +18,7 @@ const (
 var emailTmpls *template.Template
 
 func init() {
-	template.Must(emailTmpls.New(verificationEmailTmplName).Parse(verificationEmailFile))
+	emailTmpls = template.Must(template.New(verificationEmailTmplName).Parse(verificationEmailFile))
 }
 
 type emailService struct {
@@ -36,11 +36,12 @@ func (mail emailService) sendEmail(sendTo []string, subject string, msg string) 
 type verificationEmailData struct {
 	Token    string
 	Username string
+	UUID     string
 	Time     string
 	IP       string
 }
 
-func (m emailService) sendVerificationEmail(data verificationEmailData, sendTo ...string) error {
+func (mail emailService) sendVerificationEmail(data verificationEmailData, sendTo ...string) error {
 	subject := "HHN Minecraft Verification"
 	tmpl := emailTmpls.Lookup(verificationEmailTmplName)
 	w := bytes.NewBuffer([]byte{})
