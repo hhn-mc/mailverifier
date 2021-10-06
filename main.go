@@ -3,5 +3,10 @@ package main
 import "log"
 
 func main() {
-	log.Println("Hello, world!")
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatalf("Failed laoding config from %s; %s", configPath, err)
+	}
+
+	log.Fatal(startAPI(cfg))
 }
