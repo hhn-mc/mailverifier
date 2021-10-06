@@ -63,17 +63,16 @@ func registerPostHandler(emailCfg emailConfig, emailRegex string) http.HandlerFu
 	tmpl := template.Must(template.New("verifyEmail").Parse(verifyEmailTemplate))
 	emailPattern := regexp.MustCompile(emailRegex)
 	return func(w http.ResponseWriter, r *http.Request) {
-		email := fromURLValues(r.Form, "email")
+		email := r.FormValue("email")
 		if !emailPattern.MatchString(email) {
 			http.Error(w, "Email in invalid format", http.StatusBadRequest)
 			log.Printf("Email did not match: %q", email)
 			return
 		}
 
-		query := r.URL.Query()
 		data := verificationEmailData{
 			Token:    "",
-			Username: fromURLValues(query, "username"),
+			Username: r.FormValue("username"),
 			Time:     time.Now().String(),
 			IP:       r.RemoteAddr,
 		}
