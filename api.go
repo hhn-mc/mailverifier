@@ -4,12 +4,12 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"net/smtp"
 	"net/url"
 	"regexp"
-	"text/template"
 	"time"
 
 	"github.com/go-chi/chi/v5"
