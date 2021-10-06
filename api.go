@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bytes"
 	_ "embed"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
-	"net/smtp"
 	"net/url"
 	"regexp"
 	"time"
@@ -16,17 +13,18 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-//go:embed templates/email/verify.html
-var verifyEmailTemplate string
-
 //go:embed templates/web/register.html
 var registerWebTemplate string
 
 func startAPI(cfg config) error {
+	emailService := emailService{
+		cfg: cfg.Email,
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Get("/register", registerGetHandler())
-	r.Post("/register", registerPostHandler(cfg.Email, cfg.EmailRegex))
+	r.Post("/register", registerPostHandler(emailService, cfg.EmailRegex))
 	r.Post("/verify", verifyGetHandler())
 
 	srv := http.Server{
@@ -59,7 +57,7 @@ func registerGetHandler() http.HandlerFunc {
 	}
 }
 
-func registerPostHandler(emailCfg emailConfig, emailRegex string) http.HandlerFunc {
+func registerPostHandler(emailService emailService, emailRegex string) http.HandlerFunc {
 	tmpl := template.Must(template.New("verifyEmail").Parse(verifyEmailTemplate))
 	emailPattern := regexp.MustCompile(emailRegex)
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +74,7 @@ func registerPostHandler(emailCfg emailConfig, emailRegex string) http.HandlerFu
 			Time:     time.Now().String(),
 			IP:       r.RemoteAddr,
 		}
-		if err := sendVerificationEmail(emailCfg, email, data); err != nil {
+		if err := emailService.sendVerificationEmail(data, email); err != nil {
 			http.Error(w, "Error while sending your email", http.StatusInternalServerError)
 			log.Printf("Failed to send email to %q; %s", email, err)
 			return
@@ -99,25 +97,4 @@ func verifyGetHandler() http.HandlerFunc {
 
 		tmpl.Execute(w, data)
 	}
-}
-
-type verificationEmailData struct {
-	Token    string
-	Username string
-	Time     string
-	IP       string
-}
-
-func sendVerificationEmail(cfg emailConfig, sendTo string, data verificationEmailData) error {
-	tmpl := template.Must(template.New("verificationEmail").Parse(verifyEmailTemplate))
-	auth := smtp.PlainAuth(cfg.Identity, cfg.Username, cfg.Password, cfg.Host)
-	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
-	to := []string{sendTo}
-	subject := "HHN Minecraft Verify"
-	msg := fmt.Sprintf("To: %s\nFrom: %s\nSubject: %s\n%s\n", sendTo, cfg.Identity, subject, mime)
-	w := bytes.NewBuffer([]byte(msg))
-	if err := tmpl.Execute(w, data); err != nil {
-		return err
-	}
-	return smtp.SendMail(cfg.SMTPHost, auth, cfg.Email, to, w.Bytes())
 }
