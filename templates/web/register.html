@@ -15,9 +15,10 @@
     <h1>Register</h1>
     <form method="POST">
         <label for="username">Username:</label><br>
-        <input id="username" type="text" name="username" value="{{.Username}}"><br>
+        <input id="username" type="text" name="username" readonly value="{{.Username}}"><br>
         <label for="email">Email</label><br>
-        <input id="email" type="email" name="email" placeholder="{{.Username}}@(stud.)hs-heilbronn.de"><br>
+        <input id="email" type="email" name="email" required placeholder="{{.Username}}@(stud.)hs-heilbronn.de"><br>
+        <input name="token" style="display: none;" value="{{.Token}}">
         <input type="submit" value="Submit"><br>
     </form>
 </body>

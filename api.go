@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"net/url"
 	"regexp"
 	"time"
 
@@ -26,41 +25,40 @@ func init() {
 	webTmpls = template.Must(template.New(registerWebTmplName).Parse(registerWebTmpl))
 }
 
-func startAPI(cfg config) error {
-	emailService := emailService{
-		cfg: cfg.Email,
-	}
+type api struct {
+	bind       string
+	mailer     emailService
+	emailRegex string
+}
 
+func (api api) listenAndServe() error {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	r.Get("/register", registerGetHandler())
-	r.Post("/register", registerPostHandler(emailService, cfg.EmailRegex))
-	r.Post("/verify", verifyGetHandler())
+	r.Get("/register/{token}", registerGetHandler())
+	r.Post("/register", registerPostHandler(api.mailer, api.emailRegex))
+	r.Get("/verify/{token}", verifyGetHandler())
 
 	srv := http.Server{
-		Addr:    cfg.API.Bind,
+		Addr:    api.bind,
 		Handler: r,
 	}
 
 	return srv.ListenAndServe()
 }
 
-func fromURLValues(query url.Values, key string) string {
-	v, ok := query[key]
-	if !ok {
-		return ""
-	}
-	return v[0]
+type registerWebData struct {
+	Token    string
+	Username string
 }
 
 func registerGetHandler() http.HandlerFunc {
 	tmpl := webTmpls.Lookup(registerWebTmplName)
 	return func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
-		data := struct {
-			Username string
-		}{
-			Username: fromURLValues(query, "username"),
+		token := chi.URLParam(r, "token")
+
+		data := registerWebData{
+			Token:    token,
+			Username: "",
 		}
 
 		tmpl.Execute(w, data)
@@ -97,12 +95,10 @@ func registerPostHandler(emailService emailService, emailRegex string) http.Hand
 func verifyGetHandler() http.HandlerFunc {
 	tmpl := webTmpls.Lookup(registerWebTmplName)
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		query := r.URL.Query()
 		data := struct {
 			Username string
 		}{
-			Username: fromURLValues(query, "username"),
+			Username: "",
 		}
 
 		tmpl.Execute(w, data)

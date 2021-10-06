@@ -2,14 +2,13 @@ package main
 
 import (
 	_ "embed"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 
 	"gopkg.in/yaml.v3"
 )
-
-var configPath = "config.yaml"
 
 //go:embed config.yaml
 var defaultConfig []byte
@@ -49,8 +48,17 @@ type databaseConfig struct {
 	Password     string `yaml:"password"`
 }
 
-func loadConfig() (config, error) {
-	bb, err := ioutil.ReadFile(configPath)
+func (cfg databaseConfig) dsn() string {
+	return fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		cfg.Username,
+		cfg.Password,
+		cfg.Host,
+		cfg.DatabaseName,
+	)
+}
+
+func loadConfig(path string) (config, error) {
+	bb, err := ioutil.ReadFile(path)
 	if err != nil {
 		return config{}, err
 	}

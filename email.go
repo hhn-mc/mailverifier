@@ -22,15 +22,19 @@ func init() {
 }
 
 type emailService struct {
-	cfg emailConfig
+	host     string
+	smtpHost string
+	email    string
+	identity string
+	username string
+	password string
 }
 
 func (mail emailService) sendEmail(sendTo []string, subject string, msg string) error {
-	cfg := mail.cfg
-	auth := smtp.PlainAuth(cfg.Identity, cfg.Username, cfg.Password, cfg.Host)
+	auth := smtp.PlainAuth(mail.identity, mail.username, mail.password, mail.host)
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
-	msg = fmt.Sprintf("To: %s\nFrom: %s\nSubject: %s\n%s\n%s", sendTo, cfg.Email, subject, mime, msg)
-	return smtp.SendMail(cfg.SMTPHost, auth, cfg.Email, sendTo, []byte(msg))
+	msg = fmt.Sprintf("To: %s\nFrom: %s\nSubject: %s\n%s\n%s", sendTo, mail.email, subject, mime, msg)
+	return smtp.SendMail(mail.smtpHost, auth, mail.email, sendTo, []byte(msg))
 }
 
 type verificationEmailData struct {
@@ -48,5 +52,5 @@ func (mail emailService) sendVerificationEmail(data verificationEmailData, sendT
 	if err := tmpl.Execute(w, data); err != nil {
 		return err
 	}
-	return m.sendEmail(sendTo, subject, w.String())
+	return mail.sendEmail(sendTo, subject, w.String())
 }
