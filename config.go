@@ -28,15 +28,17 @@ type config struct {
 	API struct {
 		Bind string `yaml:"bind"`
 	} `yaml:"api"`
-	Email struct {
-		Host     string `yaml:"host"`
-		SMTPHost string `yaml:"smtp_host"`
-		Email    string `yaml:"email"`
-		Identity string `yaml:"identity"`
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-	} `yaml:"email"`
-	EmailRegex string `yaml:"email_regex"`
+	Email      emailConfig `yaml:"email"`
+	EmailRegex string      `yaml:"email_regex"`
+}
+
+type emailConfig struct {
+	Host     string `yaml:"host"`
+	SMTPHost string `yaml:"smtp_host"`
+	Email    string `yaml:"email"`
+	Identity string `yaml:"identity"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 func loadConfig() (config, error) {

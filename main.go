@@ -7,6 +7,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed laoding config from %s; %s", configPath, err)
 	}
-
 	log.Fatal(startAPI(cfg))
 }
