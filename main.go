@@ -10,6 +10,11 @@ func main() {
 		log.Fatalf("Failed laoding config from %s; %s", configPath, err)
 	}
 
+	db, err := openDatabase(cfg.Database.dsn())
+	if err != nil {
+		log.Fatalf("Failed connecting to the database; %s", err)
+	}
+
 	api := api{
 		bind: cfg.API.Bind,
 		mailer: emailService{
@@ -20,7 +25,9 @@ func main() {
 			username: cfg.Email.Username,
 			password: cfg.Email.Password,
 		},
-		emailRegex: cfg.EmailRegex,
+		db:         db,
+		emailRegex: cfg.API.EmailRegex,
+		creds:      cfg.API.Creds,
 	}
 
 	log.Fatal(api.listenAndServe())

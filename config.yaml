@@ -1,11 +1,19 @@
 api:
   bind: 0.0.0.0:8080
+  # Regex pattern that the email verification requires
+  email_regex: .{1,64}@(.+)?hs-heilbronn.de
+  # This is required for authenticating before
+  # creating a token
+  basic_auth:
+    - admin: foobar
 
 email:
   host: mail.example.de
   smtp_host: mail.example.de:587
   email: example@example.de
-  identity: example
+  # Most mail server don't require this
+  # Leave empty if unsure
+  identity: 
   username: admin
   password: foobar
 
@@ -14,5 +22,3 @@ database:
   database_name: mail_verifier
   username: admin
   password: foobar
-
-email_regex: .{1,64}@(.+)?hs-heilbronn.de

@@ -24,12 +24,15 @@ func init() {
 }
 
 type config struct {
-	API struct {
-		Bind string `yaml:"bind"`
-	} `yaml:"api"`
-	Email      emailConfig    `yaml:"email"`
-	Database   databaseConfig `yaml:"database"`
-	EmailRegex string         `yaml:"email_regex"`
+	API      apiConfig      `yaml:"api"`
+	Email    emailConfig    `yaml:"email"`
+	Database databaseConfig `yaml:"database"`
+}
+
+type apiConfig struct {
+	Bind       string            `yaml:"bind"`
+	EmailRegex string            `yaml:"email_regex"`
+	Creds      map[string]string `yaml:"basic_auth"`
 }
 
 type emailConfig struct {
