@@ -28,8 +28,9 @@ type config struct {
 	API struct {
 		Bind string `yaml:"bind"`
 	} `yaml:"api"`
-	Email      emailConfig `yaml:"email"`
-	EmailRegex string      `yaml:"email_regex"`
+	Email      emailConfig    `yaml:"email"`
+	Database   databaseConfig `yaml:"database"`
+	EmailRegex string         `yaml:"email_regex"`
 }
 
 type emailConfig struct {
@@ -39,6 +40,13 @@ type emailConfig struct {
 	Identity string `yaml:"identity"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
+}
+
+type databaseConfig struct {
+	Host         string `yaml:"host"`
+	DatabaseName string `yaml:"database_name"`
+	Username     string `yaml:"username"`
+	Password     string `yaml:"password"`
 }
 
 func loadConfig() (config, error) {

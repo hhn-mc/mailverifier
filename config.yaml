@@ -6,7 +6,13 @@ email:
   smtp_host: mail.example.de:587
   email: example@example.de
   identity: example
-  username: example
+  username: admin
+  password: foobar
+
+database:
+  host: 0.0.0.0:3306
+  database_name: mail_verifier
+  username: admin
   password: foobar
 
 email_regex: .{1,64}@(.+)?hs-heilbronn.de
