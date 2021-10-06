@@ -14,7 +14,17 @@ import (
 )
 
 //go:embed templates/web/register.html
-var registerWebTemplate string
+var registerWebTmpl string
+
+const (
+	registerWebTmplName = "register"
+)
+
+var webTmpls *template.Template
+
+func init() {
+	webTmpls = template.Must(template.New(registerWebTmplName).Parse(registerWebTmpl))
+}
 
 func startAPI(cfg config) error {
 	emailService := emailService{
@@ -44,7 +54,7 @@ func fromURLValues(query url.Values, key string) string {
 }
 
 func registerGetHandler() http.HandlerFunc {
-	tmpl := template.Must(template.New("registerWeb").Parse(registerWebTemplate))
+	tmpl := webTmpls.Lookup(registerWebTmplName)
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 		data := struct {
@@ -58,7 +68,7 @@ func registerGetHandler() http.HandlerFunc {
 }
 
 func registerPostHandler(emailService emailService, emailRegex string) http.HandlerFunc {
-	tmpl := template.Must(template.New("verifyEmail").Parse(verifyEmailTemplate))
+	tmpl := webTmpls.Lookup(registerWebTmplName)
 	emailPattern := regexp.MustCompile(emailRegex)
 	return func(w http.ResponseWriter, r *http.Request) {
 		email := r.FormValue("email")
@@ -85,7 +95,7 @@ func registerPostHandler(emailService emailService, emailRegex string) http.Hand
 }
 
 func verifyGetHandler() http.HandlerFunc {
-	tmpl := template.Must(template.New("registerEmail").Parse(verifyEmailTemplate))
+	tmpl := webTmpls.Lookup(registerWebTmplName)
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		query := r.URL.Query()
