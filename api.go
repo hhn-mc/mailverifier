@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gofrs/uuid"
+	"github.com/hhn-mc/mailverifier/db"
 )
 
 //go:embed templates/web/register.html
@@ -30,7 +31,7 @@ func init() {
 type api struct {
 	bind       string
 	mailer     emailService
-	db         database
+	db         db.DB
 	emailRegex string
 	creds      map[string]string
 }
@@ -51,21 +52,25 @@ func (api api) listenAndServe() error {
 	return srv.ListenAndServe()
 }
 
-func adminRouter(creds map[string]string) http.Handler {
+func (api api) adminRouter(creds map[string]string) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.BasicAuth("", creds))
-	r.Post("/players", playersPostHandler())
+	r.Post("/players", playersPostHandler(api.db))
 	return r
 }
 
-type playerPostJSON struct {
+type playerPostJSONReq struct {
 	UUID string `json:"uuid"`
 }
 
-func playersPostHandler(db database) http.HandlerFunc {
+type playerPostJSONResp struct {
+	Token string `json:"token"`
+}
+
+func playersPostHandler(db db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var jsonData playerPostJSON
-		if err := json.NewDecoder(r.Body).Decode(&jsonData); err != nil {
+		var jsonReq playerPostJSONReq
+		if err := json.NewDecoder(r.Body).Decode(&jsonReq); err != nil {
 			http.Error(w, "Failed to decode json", http.StatusBadRequest)
 			return
 		}
@@ -77,23 +82,23 @@ func playersPostHandler(db database) http.HandlerFunc {
 			return
 		}
 
-		tx, err := db.Begin()
-		tx.Query()
-
-		if err := db.CreatePlayer(jsonData.UUID); err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
-			log.Fatalf("Failed to create player in database; %s", err)
-			return
-		}
-
 		tokenString := token.String()
-		if err := db.CreatePlayerEmailVerification(tokenString, jsonData.UUID); err != nil {
+		if err := db.CreatePlayerAndVerification(tokenString, jsonReq.UUID); err != nil {
 			http.Error(w, "", http.StatusInternalServerError)
-			log.Fatalf("Failed to create verification; %s", err)
+			log.Fatalf("Failed to create player or verification in database; %s", err)
 			return
 		}
 
+		bb, err := json.Marshal(playerPostJSONResp{
+			Token: tokenString,
+		})
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			log.Fatal("Failed to marshal json; %s", err)
+		}
 
+		w.WriteHeader(http.StatusOK)
+		w.Write(bb)
 	}
 }
 
