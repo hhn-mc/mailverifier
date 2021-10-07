@@ -1,7 +1,7 @@
 api:
   bind: 0.0.0.0:8080
   # Regex pattern that the email verification requires
-  email_regex: .{1,64}@(.+)?hs-heilbronn.de
+  email_regex: (\d|\w){1,64}@((\d|\w){1,63}\.)?hs-heilbronn.de
   # This is required for authenticating before
   # creating a token
   basic_auth:
