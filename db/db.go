@@ -31,8 +31,8 @@ type DB struct {
 	stmts   map[stmtID]*sql.Stmt
 }
 
-func (db DB) Open() error {
-	sqlDB, err := sql.Open("mysql", dsn)
+func (db *DB) Open() error {
+	sqlDB, err := sql.Open("mysql", db.DSN)
 	if err != nil {
 		return err
 	}
@@ -41,8 +41,8 @@ func (db DB) Open() error {
 	return db.Ping()
 }
 
-func (db DB) Migrate() error {
-	row, err := db.Exec(schema)
+func (db *DB) Migrate() error {
+	_, err := db.Exec(schema)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (db *DB) PrepareStmts() error {
 	return nil
 }
 
-func (db DB) transaction(t func(tx *sql.Tx) error) error {
+func (db *DB) transaction(t func(tx *sql.Tx) error) error {
 	ctx, cancel := context.WithTimeout(context.Background(), db.QueryTimeout)
 	defer cancel()
 	tx, err := db.BeginTx(ctx, nil)
@@ -90,14 +90,13 @@ func (db DB) transaction(t func(tx *sql.Tx) error) error {
 	return tx.Commit()
 }
 
-func (db DB) CreatePlayerAndVerification(token, playerUUID string) error {
+func (db *DB) CreatePlayerAndVerification(token, playerUUID string) error {
 	return db.transaction(func(tx *sql.Tx) error {
 		if _, err := tx.Stmt(db.statement(createPlayer)).Exec(playerUUID); err != nil {
 			return err
 		}
 
 		if _, err := tx.Stmt(db.statement(createVerification)).Exec(token, playerUUID); err != nil {
-			tx.Rollback()
 			return err
 		}
 
@@ -105,6 +104,11 @@ func (db DB) CreatePlayerAndVerification(token, playerUUID string) error {
 	})
 }
 
-func (db DB) insertVerifiedEmail(token, email string) error {
-	return db.QueryRow(email, token).Err()
+func (db *DB) InsertVerifiedEmail(token, email string) error {
+	return db.transaction(func(tx *sql.Tx) error {
+		if _, err := tx.Stmt(db.statement(insertVerifiedEmail)).Exec(email, token); err != nil {
+			return err
+		}
+		return nil
+	})
 }

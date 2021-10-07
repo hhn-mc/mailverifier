@@ -4,8 +4,8 @@ api:
   email_regex: .{1,64}@(.+)?hs-heilbronn.de
   # This is required for authenticating before
   # creating a token
-  basic_auth:
-    - admin: foobar
+  username_password:
+    admin: foobar
 
 email:
   host: mail.example.de

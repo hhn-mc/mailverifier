@@ -15,7 +15,7 @@ func main() {
 		log.Fatalf("Failed laoding config from %s; %s", configPath, err)
 	}
 
-	db := db.DB{
+	db := &db.DB{
 		DSN:          cfg.Database.dsn(),
 		QueryTimeout: 10 * time.Second,
 	}

@@ -31,7 +31,7 @@ func init() {
 type api struct {
 	bind       string
 	mailer     emailService
-	db         db.DB
+	db         *db.DB
 	emailRegex string
 	creds      map[string]string
 }
@@ -42,7 +42,7 @@ func (api api) listenAndServe() error {
 	r.Get("/register/{token}", registerGetHandler())
 	r.Post("/register", registerPostHandler(api.mailer, api.emailRegex))
 	r.Get("/verify/{token}", verifyGetHandler())
-	r.Mount("/admin", adminRouter(api.creds))
+	r.Mount("/admin", api.adminRouter(api.creds))
 
 	srv := http.Server{
 		Addr:    api.bind,
@@ -52,7 +52,7 @@ func (api api) listenAndServe() error {
 	return srv.ListenAndServe()
 }
 
-func (api api) adminRouter(creds map[string]string) http.Handler {
+func (api *api) adminRouter(creds map[string]string) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.BasicAuth("", creds))
 	r.Post("/players", playersPostHandler(api.db))
@@ -67,7 +67,7 @@ type playerPostJSONResp struct {
 	Token string `json:"token"`
 }
 
-func playersPostHandler(db db.DB) http.HandlerFunc {
+func playersPostHandler(db *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var jsonReq playerPostJSONReq
 		if err := json.NewDecoder(r.Body).Decode(&jsonReq); err != nil {
@@ -94,7 +94,8 @@ func playersPostHandler(db db.DB) http.HandlerFunc {
 		})
 		if err != nil {
 			http.Error(w, "", http.StatusInternalServerError)
-			log.Fatal("Failed to marshal json; %s", err)
+			log.Fatalf("Failed to marshal json; %s", err)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)
