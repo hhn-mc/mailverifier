@@ -3,8 +3,6 @@ package main
 import (
 	"log"
 	"time"
-
-	"github.com/hhn-mc/mailverifier/db"
 )
 
 var configPath = "config.dev.yaml"
@@ -15,21 +13,17 @@ func main() {
 		log.Fatalf("Failed laoding config from %s; %s", configPath, err)
 	}
 
-	db := &db.DB{
-		DSN:          cfg.Database.dsn(),
-		QueryTimeout: 10 * time.Second,
+	db := &database{
+		dsn:     cfg.Database.dsn(),
+		timeout: 10 * time.Second,
 	}
 
-	if err := db.Open(); err != nil {
+	if err := db.open(); err != nil {
 		log.Fatalf("Failed connecting to the database; %s", err)
 	}
 
-	if err := db.Migrate(); err != nil {
+	if err := db.migrate(); err != nil {
 		log.Fatalf("Failed mirgate the database schema; %s", err)
-	}
-
-	if err := db.PrepareStmts(); err != nil {
-		log.Fatalf("Failed to prepare database statements; %s", err)
 	}
 
 	api := api{

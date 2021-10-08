@@ -45,18 +45,21 @@ type emailConfig struct {
 }
 
 type databaseConfig struct {
-	Host         string `yaml:"host"`
-	DatabaseName string `yaml:"database_name"`
-	Username     string `yaml:"username"`
-	Password     string `yaml:"password"`
+	Address  string `yaml:"address"`
+	Port     int    `yaml:"port"`
+	Database string `yaml:"database"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 func (cfg databaseConfig) dsn() string {
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	return fmt.Sprintf(
+		"host='%s' port='%d' user='%s' password='%s' dbname='%s' sslmode=disable",
+		cfg.Address,
+		cfg.Port,
 		cfg.Username,
 		cfg.Password,
-		cfg.Host,
-		cfg.DatabaseName,
+		cfg.Database,
 	)
 }
 
