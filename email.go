@@ -8,7 +8,7 @@ import (
 	"net/smtp"
 )
 
-//go:embed templates/email/verification.html
+//go:embed templates/email_verification.html
 var verificationEmailFile string
 
 const (
@@ -38,7 +38,7 @@ func (mail emailService) sendEmail(sendTo []string, subject string, msg string) 
 }
 
 type verificationEmailData struct {
-	Token    string
+	Code     string
 	Username string
 	UUID     string
 	Time     string

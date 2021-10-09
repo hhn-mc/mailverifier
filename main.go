@@ -36,9 +36,9 @@ func main() {
 			username: cfg.Email.Username,
 			password: cfg.Email.Password,
 		},
-		db:         db,
-		emailRegex: cfg.API.EmailRegex,
-		creds:      cfg.API.Creds,
+		db:                     db,
+		emailRegex:             cfg.API.EmailRegex,
+		verificationCodeLength: cfg.API.VerificationCodeLength,
 	}
 
 	log.Fatal(api.listenAndServe())

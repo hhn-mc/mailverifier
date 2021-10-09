@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration at HHN Minecraft</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            font-family: sans-serif;
+        }
+
+        .wrapper {
+            padding: 5% 5%;
+            display: grid;
+            place-items: center;
+        }
+
+        h2 {
+            margin: 20px 0px;
+            padding: 20px 30px;
+            border: 3px solid black;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            letter-spacing: 5px;
+            font-weight: bold;
+        }
+
+        p {
+            padding: 5px 0;
+        }
+
+        table {
+            padding: 5px;
+            border-radius: 3px;
+            border: 1px solid darkgrey;
+            color: darkgrey;
+        }
+
+        td {
+            padding: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <h1>Hello {{.Username}}</h1>
+        <p>
+            Thank you for registering for the HHN Minecraft server.
+            Here is your code:
+        </p>
+        <h2>{{.Code}}</h2>
+        <table>
+            <tr>
+                <td>Username:</td>
+                <td>{{.Username}}</td>
+            </tr>
+            <tr>
+                <td>UUID:</td>
+                <td>{{.UUID}}</td>
+            </tr>
+            <tr>
+                <td>Time:</td>
+                <td>{{.Time}}</td>
+            </tr>
+            <tr>
+                <td>IP:</td>
+                <td>{{.IP}}</td>
+            </tr>
+        </table>
+        <p>
+            Not you? <a href="https://hhn-mc.de/abuse/{{.Code}}">Report abuse</a>
+        </p>
+    </div>
+</body>
+</html>

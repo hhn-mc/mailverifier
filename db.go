@@ -60,18 +60,19 @@ func (db *database) migrate() error {
 	return nil
 }
 
-func (db *database) getActiveVerificationTokenForPlayerUUID(playerUUID string) (uuid.UUID, error) {
+func (db *database) getActiveVerificationIDAndCodeForPlayerUUID(playerUUID string) (uint64, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
 	defer cancel()
-	var token pgtypeuuid.UUID
+	var id uint64
+	var code string
 	if err := db.QueryRow(ctx, `
-SELECT token
+SELECT id, code
 FROM verifications
 WHERE player_uuid = $1
-AND verified_at IS NULL;`, playerUUID).Scan(&token); err != nil {
-		return uuid.UUID{}, err
+AND verified_at IS NULL;`, playerUUID).Scan(&id, &code); err != nil {
+		return 0, "", err
 	}
-	return token.UUID, nil
+	return id, code, nil
 }
 
 func (db *database) getPlayerUUIDFromToken(token string) (uuid.UUID, error) {
@@ -101,21 +102,53 @@ AND v.player_uuid = p.uuid;`, token).Scan(&username); err != nil {
 	return username, nil
 }
 
-func (db *database) createPlayerIfNotExistAndStartVerification(username, uuid, token string) error {
+func (db *database) createPlayer(uuid, username string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
 	defer cancel()
-	_, _ = db.Exec(ctx, `
+	_, err := db.Exec(ctx, `
 INSERT INTO players
-(username, uuid)
-VALUES ($1, $2);`, username, uuid)
+(uuid, username)
+VALUES ($1, $2);`, uuid, username)
+	return err
+}
 
-	if _, err := db.Exec(ctx, `
+func (db *database) doesPlayerExist(uuid string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
+	defer cancel()
+	var createdAt time.Time
+	if err := db.QueryRow(ctx, `
+SELECT created_at
+FROM players
+WHERE uuid = $1;`, uuid).Scan(&createdAt); err != nil {
+		if errors.Is(pgx.ErrNoRows, err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (db *database) createVerification(playerUUID, code string) (uint64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
+	defer cancel()
+	var id uint64
+	err := db.QueryRow(ctx, `
 INSERT INTO verifications
-(token, player_uuid)
-VALUES ($1, $2);`, token, uuid); err != nil {
+(player_uuid, code)
+VALUES ($1, $2)
+RETURNING id;`, playerUUID, code).Scan(&id)
+	return id, err
+}
+
+func (db *database) createEmailVerification(verificationID uint64, email string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
+	defer cancel()
+	if _, err := db.Exec(ctx, `
+INSERT INTO verification_emails
+(verification_id, email)
+VALUES ($1, $2);`, verificationID, email); err != nil {
 		return err
 	}
-
 	return nil
 }
 

@@ -30,9 +30,9 @@ type config struct {
 }
 
 type apiConfig struct {
-	Bind       string            `yaml:"bind"`
-	EmailRegex string            `yaml:"email_regex"`
-	Creds      map[string]string `yaml:"username_password"`
+	Bind                   string `yaml:"bind"`
+	EmailRegex             string `yaml:"email_regex"`
+	VerificationCodeLength int    `yaml:"verification_code_length"`
 }
 
 type emailConfig struct {
