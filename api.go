@@ -27,6 +27,7 @@ func (api api) listenAndServe() error {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Post("/players/verifications", api.verificationsPostHandler())
+	r.Post("/verifications/validate", api.verificationsValidateHandler())
 
 	srv := http.Server{
 		Addr:    api.bind,
@@ -73,32 +74,12 @@ func (api api) verificationsPostHandler() http.HandlerFunc {
 			log.Printf("Email did not match: %q", email)
 			return
 		}
+			
+		api.db.createPlayerIfNotExist(uuid, username)
 
-		playerExists, err := api.db.doesPlayerExist(uuid)
+		verificationID, err := api.db.getUnverifiedValidationID(uuid)
 		if err != nil {
-			http.Error(w, "Database error", http.StatusInternalServerError)
-			log.Printf("Failed to get if player exists; %s", err)
-			return
-		}
-
-		if !playerExists {
-			if err := api.db.createPlayer(uuid, username); err != nil {
-				http.Error(w, "Database error", http.StatusInternalServerError)
-				log.Printf("Failed to create player in database; %s", err)
-				return
-			}
-		}
-
-		id, code, err := api.db.getActiveVerificationIDAndCodeForPlayerUUID(uuid)
-		if err != nil {
-			code, err = generateVerificationCode(api.verificationCodeLength)
-			if err != nil {
-				http.Error(w, "Failed to create verification code", http.StatusInternalServerError)
-				log.Printf("Failed to create verification code; %s", err)
-				return
-			}
-
-			id, err = api.db.createVerification(uuid, code)
+			verificationID, err = api.db.createValidation(uuid)
 			if err != nil {
 				http.Error(w, "Database error", http.StatusInternalServerError)
 				log.Printf("Failed to create verification in database; %s", err)
@@ -106,7 +87,14 @@ func (api api) verificationsPostHandler() http.HandlerFunc {
 			}
 		}
 
-		if err := api.db.createEmailVerification(id, email); err != nil {
+		code, err := generateVerificationCode(api.verificationCodeLength)
+		if err != nil {
+			http.Error(w, "Failed to create verification code", http.StatusInternalServerError)
+			log.Printf("Failed to create verification code; %s", err)
+			return
+		}
+		
+		if err := api.db.createEmailVerification(verificationID, code, email); err != nil {
 			http.Error(w, "Database error", http.StatusInternalServerError)
 			log.Printf("Failed to create email verification in database; %s", err)
 			return
@@ -126,5 +114,21 @@ func (api api) verificationsPostHandler() http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusCreated)
+	}
+}
+
+func (api api) verificationsValidateHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var jsonReq struct {
+			UUID string `json:"uuid"`
+			Code string `json:"code"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&jsonReq); err != nil {
+			http.Error(w, "Failed to decode json", http.StatusBadRequest)
+			return
+		}
+
+		api.db.getActiveVerificationIDAndCodeForPlayerUUID(playerUUID)
 	}
 }
