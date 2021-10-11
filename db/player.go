@@ -24,11 +24,17 @@ func (db *DB) PlayerByUUID(uuid string) (player.Player, error) {
 
 	var p player.Player
 	return p, db.QueryRow(ctx, `
-SELECT uuid, username, created_at
+SELECT uuid, 
+	(CASE 
+		WHEN verification_id IS NULL THEN TRUE
+		ELSE FALSE
+	END),
+	username,
+	created_at
 FROM players
 WHERE uuid = $1;
 `, uuid).
-		Scan(&p.UUID, &p.Username, &p.CreatedAt)
+		Scan(&p.UUID, &p.IsVerified, &p.Username, &p.CreatedAt)
 }
 
 func (db *DB) CreatePlayer(p *player.Player) error {

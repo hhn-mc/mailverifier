@@ -8,9 +8,10 @@ import (
 )
 
 type Player struct {
-	UUID      string    `json:"uuid"`
-	Username  string    `json:"username"`
-	CreatedAt time.Time `json:"createdAt"`
+	UUID       string    `json:"uuid"`
+	Username   string    `json:"username"`
+	IsVerified bool      `json:"isVerified"`
+	CreatedAt  time.Time `json:"createdAt"`
 }
 
 func (player Player) Validate() error {
@@ -22,6 +23,10 @@ func (player Player) Validate() error {
 	return validation.ValidateStruct(&player, fieldRules...)
 }
 
-type Validation struct {
-	
+type Verification struct {
+	ID         uint64    `json:"id"`
+	PlayerUUID string    `json:"playerUuid,omitempty"`
+	Email      string    `json:"email,omitempty"`
+	VerifiedAt time.Time `json:"verifiedAt,omitempty"`
+	CreatedAt  time.Time `json:"createdAt"`
 }
