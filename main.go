@@ -13,7 +13,22 @@ func main() {
 		log.Fatalf("Failed laoding config from %s; %s", configPath, err)
 	}
 
-	db := &database{
+	log.Println(emailService{
+		host:     cfg.Email.Host,
+		smtpHost: cfg.Email.SMTPHost,
+		email:    cfg.Email.Email,
+		identity: cfg.Email.Identity,
+		username: cfg.Email.Username,
+		password: cfg.Email.Password,
+	}.sendVerificationEmail(verificationEmailData{
+		Code:     "C48A",
+		Username: "tomdaveX",
+		UUID:     "",
+		Time:     time.Now().Format(time.RFC3339),
+		IP:       "123.45.67.89",
+	}, ""))
+
+	/*db := &database{
 		dsn:     cfg.Database.dsn(),
 		timeout: 10 * time.Second,
 	}
@@ -41,5 +56,5 @@ func main() {
 		verificationCodeLength: cfg.API.VerificationCodeLength,
 	}
 
-	log.Fatal(api.listenAndServe())
+	log.Fatal(api.listenAndServe())*/
 }

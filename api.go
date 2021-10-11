@@ -1,29 +1,17 @@
 package main
 
 import (
-	"crypto/rand"
 	_ "embed"
-	"encoding/hex"
-	"encoding/json"
-	"log"
-	"net/http"
-	"regexp"
-	"strings"
-	"time"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 type api struct {
 	bind                   string
 	mailer                 emailService
-	db                     *database
 	emailRegex             string
 	verificationCodeLength int
 }
 
-func (api api) listenAndServe() error {
+/*func (api api) listenAndServe() error {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Post("/players/verifications", api.verificationsPostHandler())
@@ -74,7 +62,7 @@ func (api api) verificationsPostHandler() http.HandlerFunc {
 			log.Printf("Email did not match: %q", email)
 			return
 		}
-			
+
 		api.db.createPlayerIfNotExist(uuid, username)
 
 		verificationID, err := api.db.getUnverifiedValidationID(uuid)
@@ -93,7 +81,7 @@ func (api api) verificationsPostHandler() http.HandlerFunc {
 			log.Printf("Failed to create verification code; %s", err)
 			return
 		}
-		
+
 		if err := api.db.createEmailVerification(verificationID, code, email); err != nil {
 			http.Error(w, "Database error", http.StatusInternalServerError)
 			log.Printf("Failed to create email verification in database; %s", err)
@@ -131,4 +119,4 @@ func (api api) verificationsValidateHandler() http.HandlerFunc {
 
 		api.db.getActiveVerificationIDAndCodeForPlayerUUID(playerUUID)
 	}
-}
+}*/

@@ -30,3 +30,7 @@ type Verification struct {
 	VerifiedAt time.Time `json:"verifiedAt,omitempty"`
 	CreatedAt  time.Time `json:"createdAt"`
 }
+
+type VerificationsFilter struct {
+	IsVerified *bool `schema:"isVerified"`
+}

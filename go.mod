@@ -8,6 +8,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
+	github.com/gorilla/schema v1.2.0
 	github.com/jackc/pgtype v1.8.1
 	github.com/jackc/pgx/v4 v4.13.0
 	golang.org/x/net v0.0.0-20211007125505-59d4e928ea9d
