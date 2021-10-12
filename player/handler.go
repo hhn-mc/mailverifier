@@ -8,26 +8,15 @@ import (
 	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
-	"github.com/gorilla/schema"
 )
 
 type DataRepository interface {
 	PlayerWithUUIDExists(uuid string) (bool, error)
 	PlayerByUUID(uuid string) (Player, error)
 	CreatePlayer(player *Player) error
-
-	Verifications(filter VerificationsFilter) ([]Verification, error)
 }
 
-func Handler(repo DataRepository) http.Handler {
-	r := chi.NewRouter()
-	r.Get("/{uuid}", getPlayerHandler(repo))
-	r.Post("/", postPlayerHandler(repo))
-	r.Get("/{uuid}/verifications")
-	return r
-}
-
-func getPlayerHandler(repo DataRepository) http.HandlerFunc {
+func GetPlayerHandler(repo DataRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
 		if err := validation.Validate(uuid, is.UUIDv4); err != nil {
@@ -41,14 +30,14 @@ func getPlayerHandler(repo DataRepository) http.HandlerFunc {
 			return
 		}
 
-		if alreadyExists {
-			w.WriteHeader(http.StatusConflict)
+		if !alreadyExists {
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
 		player, err := repo.PlayerByUUID(uuid)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
+			w.WriteHeader(http.StatusInternalServerError)
 			log.Println(err)
 			return
 		}
@@ -63,7 +52,7 @@ func getPlayerHandler(repo DataRepository) http.HandlerFunc {
 	}
 }
 
-func postPlayerHandler(repo DataRepository) http.HandlerFunc {
+func PostPlayerHandler(repo DataRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var player Player
 		if err := json.NewDecoder(r.Body).Decode(&player); err != nil {
@@ -99,22 +88,6 @@ func postPlayerHandler(repo DataRepository) http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
-func getVerifications(repo DataRepository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var filter VerificationsFilter
-		if err := schema.NewDecoder().Decode(&filter, r.URL.Query()); err != nil {
-			http.Error(w, err.Error(), http.StatusBadGateway)
-			return
-		}
-
-		_, err := repo.Verifications(filter)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			log.Println()
-		}
+		w.WriteHeader(http.StatusCreated)
 	}
 }

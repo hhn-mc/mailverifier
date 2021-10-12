@@ -2,7 +2,15 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/hhn-mc/mailverifier/db"
+	"github.com/hhn-mc/mailverifier/mailer"
+	"github.com/hhn-mc/mailverifier/player"
+	"github.com/hhn-mc/mailverifier/player/verification"
 )
 
 var configPath = "config.dev.yaml"
@@ -13,48 +21,64 @@ func main() {
 		log.Fatalf("Failed laoding config from %s; %s", configPath, err)
 	}
 
-	log.Println(emailService{
-		host:     cfg.Email.Host,
-		smtpHost: cfg.Email.SMTPHost,
-		email:    cfg.Email.Email,
-		identity: cfg.Email.Identity,
-		username: cfg.Email.Username,
-		password: cfg.Email.Password,
-	}.sendVerificationEmail(verificationEmailData{
-		Code:     "C48A",
-		Username: "tomdaveX",
-		UUID:     "",
-		Time:     time.Now().Format(time.RFC3339),
-		IP:       "123.45.67.89",
-	}, ""))
-
-	/*db := &database{
-		dsn:     cfg.Database.dsn(),
-		timeout: 10 * time.Second,
+	db := db.DB{
+		Host:     cfg.Database.Host,
+		Database: cfg.Database.Database,
+		Username: cfg.Database.Username,
+		Password: cfg.Database.Password,
+		Timeout:  10 * time.Second,
 	}
 
-	if err := db.open(); err != nil {
+	if err := db.Open(); err != nil {
 		log.Fatalf("Failed connecting to the database; %s", err)
 	}
 
-	if err := db.migrate(); err != nil {
+	if err := db.Migrate(); err != nil {
 		log.Fatalf("Failed mirgate the database schema; %s", err)
 	}
 
-	api := api{
-		bind: cfg.API.Bind,
-		mailer: emailService{
-			host:     cfg.Email.Host,
-			smtpHost: cfg.Email.SMTPHost,
-			email:    cfg.Email.Email,
-			identity: cfg.Email.Identity,
-			username: cfg.Email.Username,
-			password: cfg.Email.Password,
-		},
-		db:                     db,
-		emailRegex:             cfg.API.EmailRegex,
-		verificationCodeLength: cfg.API.VerificationCodeLength,
+	mailer := mailer.Service{
+		Host:     cfg.Email.Host,
+		SMTPHost: cfg.Email.SMTPHost,
+		Email:    cfg.Email.Email,
+		Alias:    cfg.Email.Alias,
+		Identity: cfg.Email.Identity,
+		Username: cfg.Email.Username,
+		Password: cfg.Email.Password,
 	}
 
-	log.Fatal(api.listenAndServe())*/
+	validityDuration, err := time.ParseDuration(cfg.EmailValidityDuration)
+	if err != nil {
+		log.Fatalf("Failed parse email validity duration; %s", err)
+	}
+
+	veCfg := verification.VerificationEmailConfig{
+		EmailRegex:             cfg.EmailRegex,
+		VerificationCodeLength: cfg.VerificationCodeLength,
+		EmailValidityDuration:  validityDuration,
+		MaxEmailTries:          cfg.MaxEmailTries,
+	}
+
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Route("/players", func(r chi.Router) {
+		r.Get("/{uuid}", player.GetPlayerHandler(&db))
+		r.Post("/", player.PostPlayerHandler(&db))
+		r.Route("/{uuid}/verifications", func(r chi.Router) {
+			r.Get("/", verification.GetVerificationsHandler(&db))
+			r.Post("/", verification.PostVerificationHandler(&db))
+		})
+		r.Route("/{uuid}/verification-emails", func(r chi.Router) {
+			r.Post("/", verification.PostVerificationEmailHandler(veCfg, mailer, &db))
+		})
+	})
+
+	srv := http.Server{
+		Addr:    cfg.API.Bind,
+		Handler: r,
+	}
+	log.Println(srv.ListenAndServe())
 }

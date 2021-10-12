@@ -27,6 +27,7 @@ require (
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
+	github.com/go-chi/chi v1.5.4
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/jackc/puddle v1.1.3 // indirect
 	github.com/lib/pq v1.10.3 // indirect

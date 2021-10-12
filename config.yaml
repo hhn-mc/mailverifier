@@ -1,13 +1,22 @@
+# Regex pattern that the email verification requires
+email_regex: (\d|\w){1,64}@((\d|\w){1,63}\.)?hs-heilbronn.de
+verification_code_length: 4
+
+# Time until the next
+email_validity_duration: 4368h
+# Numbers of email retries until soft ban
+max_email_tries: 3
+
 api:
   bind: 0.0.0.0:8080
-  # Regex pattern that the email verification requires
-  email_regex: (\d|\w){1,64}@((\d|\w){1,63}\.)?hs-heilbronn.de
-  verification_code_length: 4
 
 email:
   host: mail.example.de
   smtp_host: mail.example.de:587
   email: example@example.de
+  # Alias name for that is normally
+  # displayed instead of the email address
+  alias: HHN Minecraft
   # Most mail server don't require this
   # Leave empty if unsure
   identity: 
@@ -15,7 +24,7 @@ email:
   password: foobar
 
 database:
-  host: 0.0.0.0:3306
-  database_name: mail_verifier
-  username: admin
-  password: foobar
+  host: 0.0.0.0:5432
+  database: postgres
+  username: postgres
+  password: postgres

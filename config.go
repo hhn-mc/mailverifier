@@ -2,7 +2,6 @@ package main
 
 import (
 	_ "embed"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -24,43 +23,34 @@ func init() {
 }
 
 type config struct {
-	API      apiConfig      `yaml:"api"`
-	Email    emailConfig    `yaml:"email"`
-	Database databaseConfig `yaml:"database"`
+	EmailRegex             string         `yaml:"email_regex"`
+	VerificationCodeLength int            `yaml:"verification_code_length"`
+	EmailValidityDuration  string         `yaml:"email_validity_duration"`
+	MaxEmailTries          int            `yaml:"max_email_tries"`
+	API                    apiConfig      `yaml:"api"`
+	Email                  emailConfig    `yaml:"email"`
+	Database               databaseConfig `yaml:"database"`
 }
 
 type apiConfig struct {
-	Bind                   string `yaml:"bind"`
-	EmailRegex             string `yaml:"email_regex"`
-	VerificationCodeLength int    `yaml:"verification_code_length"`
+	Bind string `yaml:"bind"`
 }
 
 type emailConfig struct {
 	Host     string `yaml:"host"`
 	SMTPHost string `yaml:"smtp_host"`
 	Email    string `yaml:"email"`
+	Alias    string `yaml:"alias"`
 	Identity string `yaml:"identity"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 }
 
 type databaseConfig struct {
-	Address  string `yaml:"address"`
-	Port     int    `yaml:"port"`
+	Host     string `yaml:"host"`
 	Database string `yaml:"database"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
-}
-
-func (cfg databaseConfig) dsn() string {
-	return fmt.Sprintf(
-		"host='%s' port='%d' user='%s' password='%s' dbname='%s' sslmode=disable",
-		cfg.Address,
-		cfg.Port,
-		cfg.Username,
-		cfg.Password,
-		cfg.Database,
-	)
 }
 
 func loadConfig(path string) (config, error) {

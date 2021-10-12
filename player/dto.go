@@ -22,15 +22,3 @@ func (player Player) Validate() error {
 
 	return validation.ValidateStruct(&player, fieldRules...)
 }
-
-type Verification struct {
-	ID         uint64    `json:"id"`
-	PlayerUUID string    `json:"playerUuid,omitempty"`
-	Email      string    `json:"email,omitempty"`
-	VerifiedAt time.Time `json:"verifiedAt,omitempty"`
-	CreatedAt  time.Time `json:"createdAt"`
-}
-
-type VerificationsFilter struct {
-	IsVerified *bool `schema:"isVerified"`
-}
