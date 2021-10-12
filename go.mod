@@ -8,7 +8,6 @@ require (
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
-	github.com/gorilla/schema v1.2.0
 	github.com/jackc/pgtype v1.8.1
 	github.com/jackc/pgx/v4 v4.13.0
 	golang.org/x/net v0.0.0-20211007125505-59d4e928ea9d
@@ -27,7 +26,6 @@ require (
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
-	github.com/go-chi/chi v1.5.4
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/jackc/puddle v1.1.3 // indirect
 	github.com/lib/pq v1.10.3 // indirect
