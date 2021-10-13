@@ -80,7 +80,7 @@ func PostVerificationHandler(repo DataRepository) http.HandlerFunc {
 }
 
 func generateVerificationCode(length int) (string, error) {
-	bb := make([]byte, length/2+1)
+	bb := make([]byte, (length+1)/2)
 	if _, err := rand.Read(bb); err != nil {
 		return "", err
 	}
@@ -99,10 +99,6 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 	emailRegex := regexp.MustCompile(cfg.EmailRegex)
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
-		if err := validation.Validate(uuid, is.UUIDv4); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
 
 		var email Email
 		if err := json.NewDecoder(r.Body).Decode(&email); err != nil {
@@ -115,14 +111,14 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 			return
 		}
 
-		hasVerification, err := repo.HasVerification(uuid)
+		hasVerifications, err := repo.HasVerification(uuid)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			log.Println("Failed getting if has verification; ", err)
+			log.Println("Failed getting if player has verifications; ", err)
 			return
 		}
 
-		if !hasVerification {
+		if !hasVerifications {
 			if err := repo.CreateVerification(&Verification{PlayerUUID: uuid}); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				log.Println("Failed creating a verification; ", err)
@@ -167,20 +163,14 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 			return
 		}
 
-		player, err := repo.PlayerByUUID(uuid)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			log.Println("Failed getting player; ", err)
-			return
-		}
-
+		player := r.Context().Value("player").(player.Player)
 		emailData := mailer.VerificationEmailData{
 			Code:     code,
 			UUID:     uuid,
 			Username: player.Username,
 			Time:     time.Now().Format(time.RFC3339),
 		}
-		if err := mail.SendVerificationEmail(emailData, email.Email); err != nil {
+		if err := mail.SendVerificationEmail(emailData, "haveachin@haveachin.de"); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Println("Failed sending email", err)
 			return

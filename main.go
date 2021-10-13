@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/hhn-mc/mailverifier/db"
 	"github.com/hhn-mc/mailverifier/mailer"
 	"github.com/hhn-mc/mailverifier/player"
@@ -68,10 +71,12 @@ func main() {
 		r.Get("/{uuid}", player.GetPlayerHandler(&db))
 		r.Post("/", player.PostPlayerHandler(&db))
 		r.Route("/{uuid}/verifications", func(r chi.Router) {
+			r.Use(loadPlayer(db))
 			r.Get("/", verification.GetVerificationsHandler(&db))
 			r.Post("/", verification.PostVerificationHandler(&db))
 		})
 		r.Route("/{uuid}/verification-emails", func(r chi.Router) {
+			r.Use(loadPlayer(db))
 			r.Post("/", verification.PostVerificationEmailHandler(veCfg, mailer, &db))
 		})
 	})
@@ -81,4 +86,37 @@ func main() {
 		Handler: r,
 	}
 	log.Println(srv.ListenAndServe())
+}
+
+func loadPlayer(db db.DB) func(h http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			uuid := chi.URLParam(r, "uuid")
+			if err := validation.Validate(uuid, is.UUIDv4); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			alreadyExists, err := db.PlayerWithUUIDExists(uuid)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if !alreadyExists {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			player, err := db.PlayerByUUID(uuid)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				log.Println(err)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), "player", player)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }

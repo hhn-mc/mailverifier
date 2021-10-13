@@ -31,7 +31,7 @@ LIMIT 1
 	v.Emails = emails
 
 	for _, email := range emails {
-		if email.VerifiedAt.IsZero() {
+		if email.VerifiedAt != nil {
 			v.IsVerified = true
 			break
 		}
