@@ -211,7 +211,7 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 			Username: username,
 			Time:     time.Now().Format(time.RFC3339),
 		}
-		if err := mail.SendVerificationEmail(emailData, "haveachin@haveachin.de"); err != nil {
+		if err := mail.SendVerificationEmail(emailData, email.Email); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Println("Failed sending email", err)
 			return
