@@ -92,7 +92,7 @@ func PostPlayerHandler(repo DataRepo) http.HandlerFunc {
 type DataRepository interface {
 	Verifications(playerUUID string) ([]Verification, error)
 	CreateVerification(v *Verification) error
-	LatestVerification(playerUUID string) (Verification, error)
+	LatestVerification(playerUUID string) (Verification, bool, error)
 	CreateEmailVerification(verificationID uint64, code, email string) error
 	HasVerification(playerUUID string) (bool, error)
 }
@@ -166,26 +166,19 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 			return
 		}
 
-		hasVerifications, err := repo.HasVerification(uuid)
+		validation, exists, err := repo.LatestVerification(uuid)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			log.Println("Failed getting if player has verifications; ", err)
+			log.Println("Failed getting the latest verification; ", err)
 			return
 		}
 
-		if !hasVerifications {
+		if !exists {
 			if err := repo.CreateVerification(&Verification{PlayerUUID: uuid}); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				log.Println("Failed creating a verification; ", err)
 				return
 			}
-		}
-
-		validation, err := repo.LatestVerification(uuid)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			log.Println("Failed getting the latest verification; ", err)
-			return
 		}
 
 		if validation.CreatedAt.Add(cfg.EmailValidityDuration).Before(time.Now()) {
