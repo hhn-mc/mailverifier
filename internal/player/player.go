@@ -7,6 +7,12 @@ import (
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
+type DataRepo interface {
+	PlayerWithUUIDExists(uuid string) (bool, error)
+	PlayerByUUID(uuid string) (Player, error)
+	CreatePlayer(player *Player) error
+}
+
 type Player struct {
 	UUID       string    `json:"uuid"`
 	Username   string    `json:"username"`

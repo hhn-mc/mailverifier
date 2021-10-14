@@ -1,42 +1,34 @@
-package main
+package mailverifier
 
 import (
 	_ "embed"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"gopkg.in/yaml.v3"
 )
 
-//go:embed config.yaml
+//go:embed config.default.yaml
 var defaultConfig []byte
 
 func init() {
-	if _, err := os.Stat(configPath); err == nil {
-		return
-	}
-
-	if err := ioutil.WriteFile(configPath, defaultConfig, 0644); err != nil {
-		log.Fatalf("Failed to create default config at %s; %s", configPath, err)
-	}
 }
 
-type config struct {
+type Config struct {
 	EmailRegex             string         `yaml:"email_regex"`
 	VerificationCodeLength int            `yaml:"verification_code_length"`
 	EmailValidityDuration  string         `yaml:"email_validity_duration"`
 	MaxEmailTries          int            `yaml:"max_email_tries"`
-	API                    apiConfig      `yaml:"api"`
-	Email                  emailConfig    `yaml:"email"`
-	Database               databaseConfig `yaml:"database"`
+	API                    APIConfig      `yaml:"api"`
+	Email                  EmailConfig    `yaml:"email"`
+	Database               DatabaseConfig `yaml:"database"`
 }
 
-type apiConfig struct {
+type APIConfig struct {
 	Bind string `yaml:"bind"`
 }
 
-type emailConfig struct {
+type EmailConfig struct {
 	Host     string `yaml:"host"`
 	SMTPHost string `yaml:"smtp_host"`
 	Email    string `yaml:"email"`
@@ -46,22 +38,30 @@ type emailConfig struct {
 	Password string `yaml:"password"`
 }
 
-type databaseConfig struct {
+type DatabaseConfig struct {
 	Host     string `yaml:"host"`
 	Database string `yaml:"database"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
 }
 
-func loadConfig(path string) (config, error) {
-	bb, err := ioutil.ReadFile(path)
-	if err != nil {
-		return config{}, err
+func CreateConfigIfNotExist(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return err
 	}
 
-	var cfg config
+	return ioutil.WriteFile(path, defaultConfig, 0644)
+}
+
+func LoadConfig(path string) (Config, error) {
+	bb, err := ioutil.ReadFile(path)
+	if err != nil {
+		return Config{}, err
+	}
+
+	var cfg Config
 	if err := yaml.Unmarshal(bb, &cfg); err != nil {
-		return config{}, err
+		return Config{}, err
 	}
 
 	return cfg, nil

@@ -1,4 +1,4 @@
-package main
+package player
 
 import (
 	"context"
@@ -8,17 +8,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
-	"github.com/hhn-mc/mailverifier/db"
 )
 
 type ctxKey int
 
 const (
-	CtxPlayerUUIDKey ctxKey = iota
-	CtxPlayerUsernameKey
+	CtxUUIDKey ctxKey = iota
+	CtxUsernameKey
 )
 
-func loadPlayer(db db.DB) func(h http.Handler) http.Handler {
+func ByUUIDMiddleware(repo DataRepo) func(h http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			uuid := chi.URLParam(r, "uuid")
@@ -27,7 +26,7 @@ func loadPlayer(db db.DB) func(h http.Handler) http.Handler {
 				return
 			}
 
-			alreadyExists, err := db.PlayerWithUUIDExists(uuid)
+			alreadyExists, err := repo.PlayerWithUUIDExists(uuid)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -38,15 +37,15 @@ func loadPlayer(db db.DB) func(h http.Handler) http.Handler {
 				return
 			}
 
-			player, err := db.PlayerByUUID(uuid)
+			player, err := repo.PlayerByUUID(uuid)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				log.Println(err)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), CtxPlayerUUIDKey, player.UUID)
-			ctx = context.WithValue(ctx, CtxPlayerUsernameKey, player.Username)
+			ctx := context.WithValue(r.Context(), CtxUUIDKey, player.UUID)
+			ctx = context.WithValue(ctx, CtxUsernameKey, player.Username)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

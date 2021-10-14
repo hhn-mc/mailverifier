@@ -3,11 +3,11 @@ package db
 import (
 	"time"
 
-	"github.com/hhn-mc/mailverifier/player/verification"
+	"github.com/hhn-mc/mailverifier/internal/player"
 	"golang.org/x/net/context"
 )
 
-func (db *DB) LatestVerification(playerUUID string) (verification.Verification, error) {
+func (db *DB) LatestVerification(playerUUID string) (player.Verification, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 
@@ -19,14 +19,14 @@ ORDER BY created_at DESC
 LIMIT 1
 `, playerUUID)
 
-	var v verification.Verification
+	var v player.Verification
 	if err := row.Scan(&v.ID, &v.PlayerUUID, &v.CreatedAt); err != nil {
-		return verification.Verification{}, err
+		return player.Verification{}, err
 	}
 
 	emails, err := db.VerificationEmails(v.ID)
 	if err != nil {
-		return verification.Verification{}, err
+		return player.Verification{}, err
 	}
 	v.Emails = emails
 
@@ -53,7 +53,7 @@ WHERE player_uuid = $1;
 	return res.RowsAffected() > 0, err
 }
 
-func (db *DB) Verifications(playerUUID string) ([]verification.Verification, error) {
+func (db *DB) Verifications(playerUUID string) ([]player.Verification, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 
@@ -66,9 +66,9 @@ WHERE player_uuid = $1
 		return nil, err
 	}
 
-	var vv []verification.Verification
+	var vv []player.Verification
 	for rows.Next() {
-		var v verification.Verification
+		var v player.Verification
 		if err := rows.Scan(&v.ID, &v.PlayerUUID, &v.CreatedAt); err != nil {
 			return nil, err
 		}
@@ -91,7 +91,7 @@ WHERE player_uuid = $1
 	return vv, nil
 }
 
-func (db *DB) VerificationEmails(verificationID uint64) ([]verification.Email, error) {
+func (db *DB) VerificationEmails(verificationID uint64) ([]player.VerificationEmail, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 
@@ -104,9 +104,9 @@ WHERE verification_id = $1
 		return nil, err
 	}
 
-	var ee []verification.Email
+	var ee []player.VerificationEmail
 	for rows.Next() {
-		var e verification.Email
+		var e player.VerificationEmail
 		verifiedAt := &time.Time{}
 		if err := rows.Scan(&e.Email, &verifiedAt, &e.CreatedAt); err != nil {
 			return nil, err
@@ -119,7 +119,7 @@ WHERE verification_id = $1
 	return ee, nil
 }
 
-func (db *DB) CreateVerification(v *verification.Verification) error {
+func (db *DB) CreateVerification(v *player.Verification) error {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 

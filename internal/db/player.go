@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hhn-mc/mailverifier/player"
+	"github.com/hhn-mc/mailverifier/internal/player"
 	"github.com/jackc/pgx/v4"
 	"golang.org/x/net/context"
 )

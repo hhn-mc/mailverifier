@@ -1,28 +1,99 @@
-package verification
+package player
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/go-ozzo/ozzo-validation/is"
-	"github.com/hhn-mc/mailverifier/mailer"
-	"github.com/hhn-mc/mailverifier/player"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
+	"github.com/hhn-mc/mailverifier/internal/mailer"
 )
+
+func GetPlayerHandler(repo DataRepo) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uuid := chi.URLParam(r, "uuid")
+		if err := validation.Validate(uuid, is.UUIDv4); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		alreadyExists, err := repo.PlayerWithUUIDExists(uuid)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !alreadyExists {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		player, err := repo.PlayerByUUID(uuid)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+
+		if err := json.NewEncoder(w).Encode(player); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func PostPlayerHandler(repo DataRepo) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var player Player
+		if err := json.NewDecoder(r.Body).Decode(&player); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if err := player.Validate(); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		alreadyExists, err := repo.PlayerWithUUIDExists(player.UUID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if alreadyExists {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
+		if err := repo.CreatePlayer(&player); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+
+		if err := json.NewEncoder(w).Encode(player); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+	}
+}
 
 type DataRepository interface {
 	Verifications(playerUUID string) ([]Verification, error)
 	CreateVerification(v *Verification) error
 	LatestVerification(playerUUID string) (Verification, error)
 	CreateEmailVerification(verificationID uint64, code, email string) error
-	PlayerByUUID(uuid string) (player.Player, error)
 	HasVerification(playerUUID string) (bool, error)
 }
 
@@ -79,28 +150,12 @@ func PostVerificationHandler(repo DataRepository) http.HandlerFunc {
 	}
 }
 
-func generateVerificationCode(length int) (string, error) {
-	bb := make([]byte, (length+1)/2)
-	if _, err := rand.Read(bb); err != nil {
-		return "", err
-	}
-	code := hex.EncodeToString(bb)[0:length]
-	return strings.ToUpper(code), nil
-}
-
-type VerificationEmailConfig struct {
-	EmailRegex             string
-	VerificationCodeLength int
-	EmailValidityDuration  time.Duration
-	MaxEmailTries          int
-}
-
 func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Service, repo DataRepository) http.HandlerFunc {
 	emailRegex := regexp.MustCompile(cfg.EmailRegex)
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
 
-		var email Email
+		var email VerificationEmail
 		if err := json.NewDecoder(r.Body).Decode(&email); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -163,7 +218,7 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 			return
 		}
 
-		username := r.Context().Value(main.CtxPlayerUsernameKey).(string)
+		username := r.Context().Value(CtxUsernameKey).(string)
 		emailData := mailer.VerificationEmailData{
 			Code:     code,
 			UUID:     uuid,

@@ -7,16 +7,22 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/hhn-mc/mailverifier/db"
-	"github.com/hhn-mc/mailverifier/mailer"
-	"github.com/hhn-mc/mailverifier/player"
-	"github.com/hhn-mc/mailverifier/player/verification"
+	"github.com/hhn-mc/mailverifier/internal/db"
+	"github.com/hhn-mc/mailverifier/internal/mailer"
+	"github.com/hhn-mc/mailverifier/internal/mailverifier"
+	"github.com/hhn-mc/mailverifier/internal/player"
 )
 
-var configPath = "config.dev.yaml"
+var configPath = "configs/config.dev.yaml"
+
+func init() {
+	if err := mailverifier.CreateConfigIfNotExist(configPath); err != nil {
+		log.Fatalf("Failed to create default config at %s; %s", configPath, err)
+	}
+}
 
 func main() {
-	cfg, err := loadConfig(configPath)
+	cfg, err := mailverifier.LoadConfig(configPath)
 	if err != nil {
 		log.Fatalf("Failed laoding config from %s; %s", configPath, err)
 	}
@@ -52,7 +58,7 @@ func main() {
 		log.Fatalf("Failed parse email validity duration; %s", err)
 	}
 
-	veCfg := verification.VerificationEmailConfig{
+	veCfg := player.VerificationEmailConfig{
 		EmailRegex:             cfg.EmailRegex,
 		VerificationCodeLength: cfg.VerificationCodeLength,
 		EmailValidityDuration:  validityDuration,
@@ -68,13 +74,13 @@ func main() {
 		r.Get("/{uuid}", player.GetPlayerHandler(&db))
 		r.Post("/", player.PostPlayerHandler(&db))
 		r.Route("/{uuid}/verifications", func(r chi.Router) {
-			r.Use(loadPlayer(db))
-			r.Get("/", verification.GetVerificationsHandler(&db))
-			r.Post("/", verification.PostVerificationHandler(&db))
+			r.Use(player.ByUUIDMiddleware(&db))
+			r.Get("/", player.GetVerificationsHandler(&db))
+			r.Post("/", player.PostVerificationHandler(&db))
 		})
 		r.Route("/{uuid}/verification-emails", func(r chi.Router) {
-			r.Use(loadPlayer(db))
-			r.Post("/", verification.PostVerificationEmailHandler(veCfg, mailer, &db))
+			r.Use(player.ByUUIDMiddleware(&db))
+			r.Post("/", player.PostVerificationEmailHandler(veCfg, mailer, &db))
 		})
 	})
 
