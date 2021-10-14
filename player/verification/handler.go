@@ -163,11 +163,11 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 			return
 		}
 
-		player := r.Context().Value("player").(player.Player)
+		username := r.Context().Value(main.CtxPlayerUsernameKey).(string)
 		emailData := mailer.VerificationEmailData{
 			Code:     code,
 			UUID:     uuid,
-			Username: player.Username,
+			Username: username,
 			Time:     time.Now().Format(time.RFC3339),
 		}
 		if err := mail.SendVerificationEmail(emailData, "haveachin@haveachin.de"); err != nil {
