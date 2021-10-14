@@ -1,13 +1,15 @@
 package db
 
 import (
+	"errors"
 	"time"
 
 	"github.com/hhn-mc/mailverifier/internal/player"
+	"github.com/jackc/pgx/v4"
 	"golang.org/x/net/context"
 )
 
-func (db *DB) LatestVerification(playerUUID string) (player.Verification, error) {
+func (db *DB) LatestVerification(playerUUID string) (player.Verification, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 
@@ -21,12 +23,15 @@ LIMIT 1
 
 	var v player.Verification
 	if err := row.Scan(&v.ID, &v.PlayerUUID, &v.CreatedAt); err != nil {
-		return player.Verification{}, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return player.Verification{}, false, nil
+		}
+		return player.Verification{}, false, err
 	}
 
 	emails, err := db.VerificationEmails(v.ID)
 	if err != nil {
-		return player.Verification{}, err
+		return player.Verification{}, false, err
 	}
 	v.Emails = emails
 
@@ -37,7 +42,7 @@ LIMIT 1
 		}
 	}
 
-	return v, nil
+	return v, true, nil
 }
 
 func (db *DB) HasVerification(playerUUID string) (bool, error) {
@@ -142,4 +147,17 @@ INSERT INTO verification_emails
 VALUES ($1, $2, $3);
 `, verificationID, code, email)
 	return err
+}
+
+func (db *DB) VerifyVerification(verificationID uint64, code string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
+	defer cancel()
+
+	res, err := db.Exec(ctx, `
+UPDATE verification_emails
+SET verified_at = CURRENT_TIMESTAMP
+WHERE verification_id = $1
+AND code = $2;
+`, verificationID, code)
+	return res.RowsAffected() == 1, err
 }

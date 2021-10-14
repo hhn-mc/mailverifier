@@ -32,6 +32,18 @@ func (email VerificationEmail) Validate(emailRegex *regexp.Regexp) error {
 	return validation.ValidateStruct(&email, fieldRules...)
 }
 
+type VerificationEmailCode struct {
+	Code string `json:"code"`
+}
+
+func (code VerificationEmailCode) Validate() error {
+	fieldRules := []*validation.FieldRules{
+		validation.Field(&code.Code, validation.Required),
+	}
+
+	return validation.ValidateStruct(&code, fieldRules...)
+}
+
 func generateVerificationCode(length int) (string, error) {
 	bb := make([]byte, (length+1)/2)
 	if _, err := rand.Read(bb); err != nil {

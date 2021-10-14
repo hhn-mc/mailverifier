@@ -77,6 +77,7 @@ func main() {
 			r.Use(player.ByUUIDMiddleware(&db))
 			r.Get("/", player.GetVerificationsHandler(&db))
 			r.Post("/", player.PostVerificationHandler(&db))
+			r.Post("/verify", player.PostVerificationVerifyHandler(&db))
 		})
 		r.Route("/{uuid}/verification-emails", func(r chi.Router) {
 			r.Use(player.ByUUIDMiddleware(&db))

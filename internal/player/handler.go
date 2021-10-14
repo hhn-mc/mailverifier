@@ -13,6 +13,18 @@ import (
 	"github.com/hhn-mc/mailverifier/internal/mailer"
 )
 
+type DataRepo interface {
+	PlayerWithUUIDExists(uuid string) (bool, error)
+	PlayerByUUID(uuid string) (Player, error)
+	CreatePlayer(player *Player) error
+
+	Verifications(playerUUID string) ([]Verification, error)
+	CreateVerification(v *Verification) error
+	LatestVerification(playerUUID string) (Verification, bool, error)
+	CreateEmailVerification(verificationID uint64, code, email string) error
+	VerifyVerification(verificationID uint64, code string) (bool, error)
+}
+
 func GetPlayerHandler(repo DataRepo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
@@ -89,15 +101,7 @@ func PostPlayerHandler(repo DataRepo) http.HandlerFunc {
 	}
 }
 
-type DataRepository interface {
-	Verifications(playerUUID string) ([]Verification, error)
-	CreateVerification(v *Verification) error
-	LatestVerification(playerUUID string) (Verification, bool, error)
-	CreateEmailVerification(verificationID uint64, code, email string) error
-	HasVerification(playerUUID string) (bool, error)
-}
-
-func GetVerificationsHandler(repo DataRepository) http.HandlerFunc {
+func GetVerificationsHandler(repo DataRepo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
 		if err := validation.Validate(uuid, is.UUIDv4); err != nil {
@@ -122,7 +126,7 @@ func GetVerificationsHandler(repo DataRepository) http.HandlerFunc {
 	}
 }
 
-func PostVerificationHandler(repo DataRepository) http.HandlerFunc {
+func PostVerificationHandler(repo DataRepo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uuid := chi.URLParam(r, "uuid")
 		if err := validation.Validate(uuid, is.UUIDv4); err != nil {
@@ -150,10 +154,10 @@ func PostVerificationHandler(repo DataRepository) http.HandlerFunc {
 	}
 }
 
-func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Service, repo DataRepository) http.HandlerFunc {
+func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Service, repo DataRepo) http.HandlerFunc {
 	emailRegex := regexp.MustCompile(cfg.EmailRegex)
 	return func(w http.ResponseWriter, r *http.Request) {
-		uuid := chi.URLParam(r, "uuid")
+		uuid := r.Context().Value(CtxUUIDKey).(string)
 
 		var email VerificationEmail
 		if err := json.NewDecoder(r.Body).Decode(&email); err != nil {
@@ -173,20 +177,9 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 			return
 		}
 
-		if !exists {
-			if err := repo.CreateVerification(&Verification{PlayerUUID: uuid}); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				log.Println("Failed creating a verification; ", err)
-				return
-			}
-		}
-
-		if validation.CreatedAt.Add(cfg.EmailValidityDuration).Before(time.Now()) {
-			verification := Verification{
-				PlayerUUID: uuid,
-			}
-
-			if err := repo.CreateVerification(&verification); err != nil {
+		if !exists || validation.CreatedAt.Add(cfg.EmailValidityDuration).Before(time.Now()) {
+			validation = Verification{PlayerUUID: uuid}
+			if err := repo.CreateVerification(&validation); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				log.Println("Failed creating a verification; ", err)
 				return
@@ -225,5 +218,47 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 		}
 
 		w.WriteHeader(http.StatusCreated)
+	}
+}
+
+func PostVerificationVerifyHandler(repo DataRepo) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var code VerificationEmailCode
+		if err := json.NewDecoder(r.Body).Decode(&code); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if err := code.Validate(); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		uuid := r.Context().Value(CtxUUIDKey).(string)
+		validation, exists, err := repo.LatestVerification(uuid)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println("Failed getting the latest verification; ", err)
+			return
+		}
+
+		if !exists {
+			http.Error(w, "No pending verification", http.StatusBadRequest)
+			return
+		}
+
+		success, err := repo.VerifyVerification(validation.ID, code.Code)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Println("Failed verifying code; ", err)
+			return
+		}
+
+		if !success {
+			http.Error(w, "Invalid code", http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }
