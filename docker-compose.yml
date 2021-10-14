@@ -6,7 +6,7 @@ services:
     container_name: mailverifier
     restart: unless-stopped
     volumes:
-      - ./config.yml:/configs/config.dev.yaml
+      - ./:/configs
     networks:
       - mailverifier
       - traefik
@@ -17,10 +17,12 @@ services:
       - traefik.http.routers.mailverifier.tls=true
       - traefik.http.routers.mailverifier.tls.certresolver=lets-encrypt
       - traefik.http.services.mailverifier.loadbalancer.server.port=8080
+    depends_on:
+      - postgres
 
   postgres:
         image: postgres:latest
-        container_name: postgres
+        container_name: mailverifer-postgres
         networks:
           - mailverifier
         environment:

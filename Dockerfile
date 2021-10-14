@@ -3,10 +3,12 @@ LABEL stage=intermediate
 COPY . /mailverifier
 WORKDIR /mailverifier/cmd/mailverifier
 ENV GO111MODULE=on
-RUN GOOS=linux GOARCH=amd64 go build -o /main .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /main .
 
-FROM scratch
+FROM alpine:latest
 LABEL maintainer="Hendrik Jonas Schlehlein <hendrik.schlehlein@gmail.com>"
+RUN apk --no-cache add ca-certificates
 WORKDIR /
 COPY --from=builder /main ./
+RUN chmod +x ./main
 ENTRYPOINT [ "./main" ]
