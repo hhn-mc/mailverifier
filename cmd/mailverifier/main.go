@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -13,9 +14,22 @@ import (
 	"github.com/hhn-mc/mailverifier/internal/player"
 )
 
-var configPath = "configs/config.dev.yaml"
+const configPathEnv = "MAILVERIFIER_CONFIG_PATH"
+
+var configPath = "config.yaml"
+
+func envString(name string, value string) string {
+	envString := os.Getenv(name)
+	if envString == "" {
+		return value
+	}
+
+	return envString
+}
 
 func init() {
+	configPath = envString(configPathEnv, configPath)
+
 	if err := mailverifier.CreateConfigIfNotExist(configPath); err != nil {
 		log.Fatalf("Failed to create default config at %s; %s", configPath, err)
 	}

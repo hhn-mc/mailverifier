@@ -6,7 +6,7 @@ services:
     container_name: mailverifier
     restart: unless-stopped
     volumes:
-      - ./:/configs
+      - ../configs/config.dev.yml:/config.yml
     depends_on:
       - postgres
     ports:
