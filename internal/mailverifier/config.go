@@ -11,9 +11,6 @@ import (
 //go:embed config.default.yaml
 var defaultConfig []byte
 
-func init() {
-}
-
 type Config struct {
 	EmailRegex             string         `yaml:"email_regex"`
 	VerificationCodeLength int            `yaml:"verification_code_length"`

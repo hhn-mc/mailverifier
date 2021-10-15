@@ -2,27 +2,20 @@ version: "3"
 
 services:
   mailverifier:
-    build: .
+    build: ..
     container_name: mailverifier
     restart: unless-stopped
     volumes:
       - ./:/configs
     networks:
       - mailverifier
-      - traefik
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.mailverifier.rule=Host(`mailverifier.dev.hhn-mc.de`)
-      - traefik.http.routers.mailverifier.entrypoints=websecure
-      - traefik.http.routers.mailverifier.tls=true
-      - traefik.http.routers.mailverifier.tls.certresolver=lets-encrypt
-      - traefik.http.services.mailverifier.loadbalancer.server.port=8080
+      - hhn.minecraft
     depends_on:
       - postgres
 
   postgres:
         image: postgres:latest
-        container_name: mailverifer-postgres
+        container_name: mailverifier-postgres
         networks:
           - mailverifier
         environment:
@@ -34,5 +27,6 @@ services:
 networks:
   mailverifier:
     name: mailverifier
-  traefik:
+    internal: true
+  hhn.minecraft:
     external: true
