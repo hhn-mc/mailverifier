@@ -4,7 +4,7 @@ services:
   mailverifier:
     build:
       context: ..
-      dockerfile: build/Dockerfile
+      dockerfile: build/package/Dockerfile
     container_name: mailverifier
     restart: unless-stopped
     volumes:
