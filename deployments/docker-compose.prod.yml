@@ -11,7 +11,7 @@ services:
       - ./:/configs
     networks:
       - mailverifier
-      - hhn.minecraft
+      - hhnmc
     depends_on:
       - postgres
 
@@ -30,5 +30,5 @@ networks:
   mailverifier:
     name: mailverifier
     internal: true
-  hhn.minecraft:
+  hhnmc:
     external: true
