@@ -2,7 +2,9 @@ version: "3"
 
 services:
   mailverifier:
-    build: ..
+    build:
+      context: ..
+      dockerfile: build/Dockerfile
     container_name: mailverifier
     restart: unless-stopped
     volumes:
