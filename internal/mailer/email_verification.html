@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registration at HHN Minecraft</title>
     <style>
         * {
             margin: 0;
@@ -42,10 +41,37 @@
         td {
             padding: 3px;
         }
+
+        .spacer {
+            margin: 30px 0;
+            width: 100%;
+            border: 1px darkgray solid;
+        }
     </style>
 </head>
 <body>
     <div class="wrapper">
+        <h1>Hallo {{.Username}}</h1>
+        <p>
+            Vielen Dank, dass du dich für den HHN Minecraft Server registriert hast.
+            Hier ist Ihr Bestätigungs-Code:
+        </p>
+        <h2>{{.Code}}</h2>
+        <table>
+            <tr>
+                <td>Benutzername:</td>
+                <td>{{.Username}}</td>
+            </tr>
+            <tr>
+                <td>UUID:</td>
+                <td>{{.UUID}}</td>
+            </tr>
+            <tr>
+                <td>Zeit:</td>
+                <td>{{.Time}}</td>
+            </tr>
+        </table>
+        <div class="spacer"></div>
         <h1>Hello {{.Username}}</h1>
         <p>
             Thank you for registering for the HHN Minecraft server.
