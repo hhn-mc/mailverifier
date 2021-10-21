@@ -40,6 +40,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed laoding config from %s; %s", configPath, err)
 	}
+	println(cfg.EmailRegex)
 
 	db := db.DB{
 		Host:     cfg.Database.Host,

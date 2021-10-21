@@ -157,7 +157,7 @@ func (db *DB) VerifyVerification(verificationID uint64, code string) (bool, erro
 UPDATE verification_emails
 SET verified_at = CURRENT_TIMESTAMP
 WHERE verification_id = $1
-AND code = $2;
+AND LOWER(code) = LOWER($2);
 `, verificationID, code)
 	return res.RowsAffected() == 1, err
 }

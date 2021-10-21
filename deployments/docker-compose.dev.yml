@@ -13,6 +13,8 @@ services:
       - postgres
     ports:
       - 8080:8080
+    environment:
+      MAILVERIFIER_CONFIG_PATH: "/config.yml"
 
   postgres:
     image: postgres:latest
