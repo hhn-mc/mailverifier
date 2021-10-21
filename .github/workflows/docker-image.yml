@@ -18,7 +18,6 @@ jobs:
         registry: ghcr.io
         username: "haveachin"
         password: ${{ secrets.CONTAINER_REGISTRY }}
-        file: build/package/Dockerfile
-        context: .
+        dockerfile: build/package/Dockerfile
         repository: hhn-mc/mailverifier
         tags: latest
