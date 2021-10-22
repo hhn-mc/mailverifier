@@ -17,7 +17,7 @@ type Player struct {
 func (player Player) Validate() error {
 	fieldRules := []*validation.FieldRules{
 		validation.Field(&player.UUID, validation.Required, is.UUIDv4),
-		validation.Field(&player.Username, validation.Required, validation.Length(1, 16), is.Alphanumeric),
+		validation.Field(&player.Username, validation.Required),
 	}
 
 	return validation.ValidateStruct(&player, fieldRules...)
