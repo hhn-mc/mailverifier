@@ -36,11 +36,11 @@ func init() {
 }
 
 func main() {
+	log.Printf("Reading config from %q", configPath)
 	cfg, err := mailverifier.LoadConfig(configPath)
 	if err != nil {
 		log.Fatalf("Failed laoding config from %s; %s", configPath, err)
 	}
-	println(cfg.EmailRegex)
 
 	db := db.DB{
 		Host:     cfg.Database.Host,
@@ -50,6 +50,8 @@ func main() {
 		Timeout:  10 * time.Second,
 	}
 
+	log.Printf("Opening connection to DB on %s with usernames %q",
+		cfg.Database.Host, cfg.Database.Username)
 	if err := db.Open(); err != nil {
 		log.Fatalf("Failed connecting to the database; %s", err)
 	}
@@ -104,5 +106,6 @@ func main() {
 		Addr:    cfg.API.Bind,
 		Handler: r,
 	}
+	log.Printf("Starting API on %s", cfg.API.Bind)
 	log.Println(srv.ListenAndServe())
 }
