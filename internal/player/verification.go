@@ -19,9 +19,12 @@ type Verification struct {
 }
 
 type VerificationEmail struct {
-	Email      string     `json:"email"`
-	VerifiedAt *time.Time `json:"verifiedAt,omitempty"`
-	CreatedAt  time.Time  `json:"createdAt"`
+	VerificationID uint64     `json:"verificationId"`
+	Email          string     `json:"email"`
+	Code           string     `json:"code"`
+	VerifiedAt     *time.Time `json:"verifiedAt,omitempty"`
+	ExpiresAt      *time.Time `json:"expiresAt"`
+	CreatedAt      time.Time  `json:"createdAt"`
 }
 
 func (email VerificationEmail) Validate(emailRegex *regexp.Regexp) error {

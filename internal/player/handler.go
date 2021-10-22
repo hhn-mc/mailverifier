@@ -16,13 +16,13 @@ import (
 type DataRepo interface {
 	PlayerWithUUIDExists(uuid string) (bool, error)
 	PlayerByUUID(uuid string) (Player, error)
-	CreatePlayer(player *Player) error
+	CreatePlayer(p *Player) error
 
-	Verifications(playerUUID string) ([]Verification, error)
+	Verifications(pUUID string) ([]Verification, error)
 	CreateVerification(v *Verification) error
-	LatestVerification(playerUUID string) (Verification, bool, error)
-	CreateEmailVerification(verificationID uint64, code, email string) error
-	VerifyVerification(verificationID uint64, code string) (bool, error)
+	LatestVerification(pUUID string) (Verification, bool, error)
+	CreateEmailVerification(ve VerificationEmail) error
+	VerifyVerification(vID uint64, code string) (bool, error)
 }
 
 func GetPlayerHandler(repo DataRepo) http.HandlerFunc {
@@ -170,23 +170,23 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 			return
 		}
 
-		validation, exists, err := repo.LatestVerification(uuid)
+		verification, exists, err := repo.LatestVerification(uuid)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Println("Failed getting the latest verification; ", err)
 			return
 		}
 
-		if !exists || validation.CreatedAt.Add(cfg.EmailValidityDuration).Before(time.Now()) {
-			validation = Verification{PlayerUUID: uuid}
-			if err := repo.CreateVerification(&validation); err != nil {
+		if !exists || verification.CreatedAt.Add(cfg.EmailValidityDuration).Before(time.Now()) {
+			verification = Verification{PlayerUUID: uuid}
+			if err := repo.CreateVerification(&verification); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				log.Println("Failed creating a verification; ", err)
 				return
 			}
 		}
 
-		if len(validation.Emails) >= cfg.MaxEmailTries {
+		if len(verification.Emails) >= cfg.MaxEmailTries {
 			http.Error(w, "Max email tries reached", http.StatusConflict)
 			return
 		}
@@ -198,7 +198,14 @@ func PostVerificationEmailHandler(cfg VerificationEmailConfig, mail mailer.Servi
 			return
 		}
 
-		if err := repo.CreateEmailVerification(validation.ID, code, email.Email); err != nil {
+		expiresAt := time.Now().Add(cfg.EmailValidityDuration)
+		ve := VerificationEmail{
+			VerificationID: verification.ID,
+			Code:           code,
+			Email:          email.Email,
+			ExpiresAt:      &expiresAt,
+		}
+		if err := repo.CreateEmailVerification(ve); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Println("Failed creating email verification; ", err)
 			return

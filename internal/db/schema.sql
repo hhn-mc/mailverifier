@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS verification_emails
     code TEXT NOT NULL,
     email TEXT NOT NULL,
     verified_at TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (verification_id, code, email)
 );

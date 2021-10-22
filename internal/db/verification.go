@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (db *DB) LatestVerification(playerUUID string) (player.Verification, bool, error) {
+func (db *DB) LatestVerification(pUUID string) (player.Verification, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 
@@ -19,7 +19,7 @@ FROM verifications
 WHERE player_uuid = $1
 ORDER BY created_at DESC
 LIMIT 1
-`, playerUUID)
+`, pUUID)
 
 	var v player.Verification
 	if err := row.Scan(&v.ID, &v.PlayerUUID, &v.CreatedAt); err != nil {
@@ -45,7 +45,7 @@ LIMIT 1
 	return v, true, nil
 }
 
-func (db *DB) HasVerification(playerUUID string) (bool, error) {
+func (db *DB) HasVerification(pUUID string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 
@@ -53,12 +53,12 @@ func (db *DB) HasVerification(playerUUID string) (bool, error) {
 SELECT created_at
 FROM verifications
 WHERE player_uuid = $1;
-`, playerUUID)
+`, pUUID)
 
 	return res.RowsAffected() > 0, err
 }
 
-func (db *DB) Verifications(playerUUID string) ([]player.Verification, error) {
+func (db *DB) Verifications(pUUID string) ([]player.Verification, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 
@@ -66,7 +66,7 @@ func (db *DB) Verifications(playerUUID string) ([]player.Verification, error) {
 SELECT id, player_uuid, created_at
 FROM verifications
 WHERE player_uuid = $1
-`, playerUUID)
+`, pUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ WHERE player_uuid = $1
 	return vv, nil
 }
 
-func (db *DB) VerificationEmails(verificationID uint64) ([]player.VerificationEmail, error) {
+func (db *DB) VerificationEmails(vID uint64) ([]player.VerificationEmail, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 
@@ -104,7 +104,7 @@ func (db *DB) VerificationEmails(verificationID uint64) ([]player.VerificationEm
 SELECT email, verified_at, created_at
 FROM verification_emails
 WHERE verification_id = $1
-`, verificationID)
+`, vID)
 	if err != nil {
 		return nil, err
 	}
@@ -137,19 +137,19 @@ RETURNING id, created_at;
 		Scan(&v.ID, &v.CreatedAt)
 }
 
-func (db *DB) CreateEmailVerification(verificationID uint64, code, email string) error {
+func (db *DB) CreateEmailVerification(v player.VerificationEmail) error {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 
 	_, err := db.Exec(ctx, `
 INSERT INTO verification_emails
-(verification_id, code, email)
-VALUES ($1, $2, $3);
-`, verificationID, code, email)
+(verification_id, code, email, expires_at)
+VALUES ($1, $2, $3, $4);
+`, v.VerificationID, v.Code, v.Email, v.ExpiresAt)
 	return err
 }
 
-func (db *DB) VerifyVerification(verificationID uint64, code string) (bool, error) {
+func (db *DB) VerifyVerification(vID uint64, code string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.Timeout)
 	defer cancel()
 
@@ -158,6 +158,6 @@ UPDATE verification_emails
 SET verified_at = CURRENT_TIMESTAMP
 WHERE verification_id = $1
 AND LOWER(code) = LOWER($2);
-`, verificationID, code)
+`, vID, code)
 	return res.RowsAffected() == 1, err
 }
